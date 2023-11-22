@@ -47,7 +47,7 @@ case $tool in
                then
                echo " $tomcat_port is using by jenkins, so automatically tomcat port will assign to another available port"
                sudo sed -i 's/8080/8081/g' /var/lib/tomcat9/conf/server.xml 2>&1
-               sudo systemctl restart tomcat*.service > /dev/null 2>&1 
+               sudo systemctl restart tomcat9.service > /dev/null 2>&1 
                sudo curl --connect-timeout 5 http://$tomcat_ip:$tomcat_port | grep tomcat > /dev/null 2>&1
                  if [ $? -eq 0 ] 
                  then
