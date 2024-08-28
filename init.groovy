@@ -10,10 +10,12 @@ import com.cloudbees.jenkins.plugins.sshcredentials.impl.*
 
 // Initialize Jenkins instance
 def instance = Jenkins.getInstance()
+println "Jenkins instance initialized."
 
 // Create a new user with the username "admin" and password "admin"
 def hudsonRealm = new HudsonPrivateSecurityRealm(false)
-if (!hudsonRealm.getUser("admin")) {
+def existingUser = hudsonRealm.getUser("admin")
+if (!existingUser) {
     hudsonRealm.createAccount("admin", "admin")
     println "User 'admin' created."
 } else {
@@ -34,10 +36,12 @@ def requiredPlugins = ['git', 'workflow-aggregator', 'docker-workflow', 'ssh-age
 println "Checking if required plugins are installed..."
 requiredPlugins.each { plugin ->
     if (!pluginManager.getPlugin(plugin)) {
-        println "Installing plugin: ${plugin}"
+        println "Plugin '${plugin}' is not installed. Installing..."
         def pluginToInstall = updateCenter.getPlugin(plugin)
         if (pluginToInstall) {
-            pluginToInstall.deploy()
+            def installationFuture = pluginToInstall.deploy()
+            installationFuture.get()
+            println "Plugin '${plugin}' installed."
         } else {
             println "Plugin '${plugin}' not found in update center."
         }
@@ -47,8 +51,9 @@ requiredPlugins.each { plugin ->
 }
 
 // Create SSH credentials with username and private key
-def credentialsStore = instance.getExtensionList('com.cloudbees.plugins.credentials.SystemCredentialsProvider')[0].getStore()
-def privateKey = '''-----BEGIN RSA PRIVATE KEY-----
+try {
+    def credentialsStore = instance.getExtensionList('com.cloudbees.plugins.credentials.SystemCredentialsProvider')[0].getStore()
+    def privateKey = '''-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAuJtynHPXRwon8SmQkKEaE/Zh68Z9uPc9YrhlncnSHsgRGrSZ
 Txo9/+NZ+206+usHtnEpIj8lGs37ATQ79rbl+7BQkwNQq1XNeN1AZ4StHqDZloZ8
 bWYSGFakMwzb0C+O6kM/LAWIXVyszm/5j/DGEZRVPcMCF1dqD+06zLmXIke04+NR
@@ -76,20 +81,24 @@ v001AoGAU1foHceshDxKBsZE5b4k5HjzfbM/ep/U3QF1VnC/H2j4qOI/iIV0gc/m
 DoxaOGOa3J+pwd7IE1m+ydk26t0/qGkVsjIRj+Y2Nlu2BlWNmhw=
 -----END RSA PRIVATE KEY-----'''
 
-def sshCredentials = new BasicSSHUserPrivateKey(
-    CredentialsScope.GLOBAL,
-    "ssh-credentials-id",
-    "ubuntu",               // SSH Username
-    new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(privateKey),
-    "",                     // No passphrase
-    "Ansible_Server"        // Description
-)
+    def sshCredentials = new BasicSSHUserPrivateKey(
+        CredentialsScope.GLOBAL,
+        "ssh-credentials-id",
+        "ubuntu",               // SSH Username
+        new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(privateKey),
+        "",                     // No passphrase
+        "Ansible_Server"        // Description
+    )
 
-if (!credentialsStore.getCredentials(Domain.global()).find { it.id == "ssh-credentials-id" }) {
-    credentialsStore.addCredentials(Domain.global(), sshCredentials)
-    println "SSH credentials added."
-} else {
-    println "SSH credentials with ID 'ssh-credentials-id' already exist."
+    def existingCredential = credentialsStore.getCredentials(Domain.global()).find { it.id == "ssh-credentials-id" }
+    if (!existingCredential) {
+        credentialsStore.addCredentials(Domain.global(), sshCredentials)
+        println "SSH credentials added."
+    } else {
+        println "SSH credentials with ID 'ssh-credentials-id' already exist."
+    }
+} catch (Exception e) {
+    println "Error creating SSH credentials: ${e.message}"
 }
 
 // Mark Jenkins as fully initialized
