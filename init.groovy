@@ -39,7 +39,7 @@ plugins.each { pluginName ->
     if (plugin && !plugin.isInstalled()) {
         println "Installing ${pluginName} plugin..."
         plugin.deploy()
-        plugin.getPluginManager().install(plugin.getShortName(), false)
+        pluginManager.installPlugin(plugin)
     }
 }
 
