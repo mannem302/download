@@ -13,12 +13,18 @@ def instance = Jenkins.getInstance()
 
 // Create a new user with the username "admin" and password "admin"
 def hudsonRealm = new HudsonPrivateSecurityRealm(false)
-hudsonRealm.createAccount("admin", "admin")
+if (!hudsonRealm.getUser("admin")) {
+    hudsonRealm.createAccount("admin", "admin")
+    println "User 'admin' created."
+} else {
+    println "User 'admin' already exists."
+}
 instance.setSecurityRealm(hudsonRealm)
 
 // Set the authorization strategy to Full Control Once Logged In
 def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
 instance.setAuthorizationStrategy(strategy)
+println "Authorization strategy set to Full Control Once Logged In."
 
 // Install default plugins and SSH Agent plugin
 def pluginManager = instance.getPluginManager()
@@ -29,13 +35,20 @@ println "Checking if required plugins are installed..."
 requiredPlugins.each { plugin ->
     if (!pluginManager.getPlugin(plugin)) {
         println "Installing plugin: ${plugin}"
-        updateCenter.getPlugin(plugin).deploy()
+        def pluginToInstall = updateCenter.getPlugin(plugin)
+        if (pluginToInstall) {
+            pluginToInstall.deploy()
+        } else {
+            println "Plugin '${plugin}' not found in update center."
+        }
+    } else {
+        println "Plugin '${plugin}' is already installed."
     }
 }
 
 // Create SSH credentials with username and private key
 def credentialsStore = instance.getExtensionList('com.cloudbees.plugins.credentials.SystemCredentialsProvider')[0].getStore()
-def privateKey = ''' -----BEGIN RSA PRIVATE KEY-----
+def privateKey = '''-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAuJtynHPXRwon8SmQkKEaE/Zh68Z9uPc9YrhlncnSHsgRGrSZ
 Txo9/+NZ+206+usHtnEpIj8lGs37ATQ79rbl+7BQkwNQq1XNeN1AZ4StHqDZloZ8
 bWYSGFakMwzb0C+O6kM/LAWIXVyszm/5j/DGEZRVPcMCF1dqD+06zLmXIke04+NR
@@ -68,13 +81,18 @@ def sshCredentials = new BasicSSHUserPrivateKey(
     "ssh-credentials-id",
     "ubuntu",               // SSH Username
     new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(privateKey),
-    "",                            // No passphrase
-    "Ansible_Server"  // Description
+    "",                     // No passphrase
+    "Ansible_Server"        // Description
 )
 
-credentialsStore.addCredentials(Domain.global(), sshCredentials)
+if (!credentialsStore.getCredentials(Domain.global()).find { it.id == "ssh-credentials-id" }) {
+    credentialsStore.addCredentials(Domain.global(), sshCredentials)
+    println "SSH credentials added."
+} else {
+    println "SSH credentials with ID 'ssh-credentials-id' already exist."
+}
 
 // Mark Jenkins as fully initialized
 instance.setInstallState(InstallState.INITIAL_SETUP_COMPLETED)
-
 instance.save()
+println "Jenkins setup completed."
