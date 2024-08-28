@@ -65,6 +65,7 @@ DoxaOGOa3J+pwd7IE1m+ydk26t0/qGkVsjIRj+Y2Nlu2BlWNmhw=
 
 def sshCredentials = new BasicSSHUserPrivateKey(
     CredentialsScope.GLOBAL,
+    "ssh-credentials-id",
     "ubuntu",               // SSH Username
     new BasicSSHUserPrivateKey.DirectEntryPrivateKeySource(privateKey),
     "",                            // No passphrase
