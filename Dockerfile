@@ -4,11 +4,10 @@ FROM jenkins/jenkins:lts
 # Install AWS CLI
 USER root
 RUN apt-get update && \
-    apt-get install -y curl unzip && \
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    ./aws/install && \
-    rm -rf awscliv2.zip aws
+    apt-get install -y curl unzip awscli 
+
+# Set PATH to include AWS CLI for Jenkins user
+RUN echo 'export PATH=$PATH:/usr/local/bin' >> /etc/profile
 
 # Copy the Groovy initialization script into the container
 COPY init.groovy /usr/share/jenkins/ref/init.groovy.d/
