@@ -28,3 +28,4 @@ pipeline-milestone-step
 pipeline-model-api
 ssh-agent
 uno-choice 
+ws-cleanup
