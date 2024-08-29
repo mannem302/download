@@ -4,7 +4,7 @@ ENV JAVA_OPTS -Djenkins.install.runSetupWizard=false
 # Install AWS CLI
 USER root
 RUN apt-get update && \
-    apt-get install -y curl unzip awscli 
+    apt-get install -y curl awscli 
 
 # Copy the Groovy initialization script into the container
 COPY init.groovy /usr/share/jenkins/ref/init.groovy.d/
